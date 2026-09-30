@@ -9,6 +9,7 @@ import type {
 	ExtensionContext,
 	ToolCallEventResult,
 } from "@earendil-works/pi-coding-agent";
+import { validateToolArguments } from "@earendil-works/pi-ai";
 import gentleAi, { __testing, createGentleAiExtension } from "../extensions/gentle-ai.ts";
 import {
 	REVIEW_MODE,
@@ -54,6 +55,8 @@ type ToolCallHandler = (
 
 interface RuntimeRegistration {
 	controller: RegisteredReviewTool;
+	capture?: RegisteredReviewTool;
+	captureGroup?: RegisteredReviewTool;
 	toolCall: ToolCallHandler;
 }
 
@@ -91,10 +94,12 @@ function registerRuntime(): RuntimeRegistration {
 	} as unknown as ExtensionAPI;
 	createGentleAiExtension({ nativeReviewCli: null })(pi);
 	const controller = tools.get("gentle_review");
+	const capture = tools.get("gentle_review_capture");
+	const captureGroup = tools.get("gentle_review_capture_group");
 	const toolCall = handlers.get("tool_call");
 	assert.ok(controller, "the supported review controller tool must be registered");
 	assert.ok(toolCall, "the lifecycle gate hook must be registered");
-	return { controller, toolCall };
+	return { controller, capture, captureGroup, toolCall };
 }
 
 function extensionContext(
@@ -300,7 +305,8 @@ test("controller rejects graph-style ADVANCE without graph-v1 authority", async 
 test("controller successfully starts the explicitly supported judgment-day mode", async (t) => {
 	const fixture = createRepository(t);
 	const { controller } = registerRuntime();
-	const started = await controllerCall(controller, extensionContext(fixture.repository), {
+	const ctx = extensionContext(fixture.repository);
+	const started = await controllerCall(controller, ctx, {
 		operation: "start",
 		lineageId: "judgment-day-start",
 		idempotencyKey: "judgment-day-start-key",
@@ -308,6 +314,15 @@ test("controller successfully starts the explicitly supported judgment-day mode"
 	});
 	assert.equal(started.operation, "start");
 	assert.equal((started.state as Record<string, unknown>).mode, "judgment-day");
+
+	const startedWithObject = await controllerCall(controller, ctx, {
+		operation: "start",
+		lineageId: "judgment-day-start-object",
+		idempotencyKey: "judgment-day-start-object-key",
+		input: { mode: "judgment-day", projection: { kind: "complete" }, policyHash: "a".repeat(64), evidenceHash: "b".repeat(64), budget: budget() },
+	});
+	assert.equal(startedWithObject.operation, "start");
+	assert.equal((startedWithObject.state as Record<string, unknown>).mode, "judgment-day");
 });
 
 test("general STATUS returns the typed native-status-unsupported boundary without authority selection", () => {
@@ -371,9 +386,18 @@ test("failed START gives exact mode and serialization guidance and creates no li
 			operation: "start",
 			lineageId: "nested-start-input",
 			idempotencyKey: "nested-start-input-key",
-			input: { mode: "ordinary" },
+			input: { mode: "standard" },
 		}, undefined, undefined, ctx),
-		/START input must be a JSON string.*no lineage was created.*do not call STATUS or ADVANCE/is,
+		/only "ordinary" or "judgment-day".*no lineage was created.*do not call STATUS or ADVANCE/is,
+	);
+	await assert.rejects(
+		controller.execute("invalid-primitive-input", {
+			operation: "start",
+			lineageId: "invalid-primitive-input",
+			idempotencyKey: "invalid-primitive-input-key",
+			input: 123,
+		}, undefined, undefined, ctx),
+		/Review controller input must be a string or object/is,
 	);
 	await assert.rejects(
 		controller.execute("invalid-json-start-input", {
@@ -411,4 +435,55 @@ test("shipped controller fails closed while static prompts defer RDD lifecycle o
 		assert.doesNotMatch(contract, /INSPECT before START|start -> finalize -> validate|next_transition|review\.capture-result/is, path);
 	}
 	assert.match(readFileSync("skills/gentle-ai/SKILL.md", "utf8"), /sole lifecycle authority/i);
+});
+
+test("gentle-pi#1573: tool schemas accept both string and object for input and collectBinding", () => {
+	const { controller, capture, captureGroup } = registerRuntime();
+	assert.ok(controller);
+	assert.ok(capture);
+	assert.ok(captureGroup);
+
+	const validatedReviewObj = validateToolArguments(controller as unknown as Parameters<typeof validateToolArguments>[0], {
+		type: "toolCall",
+		id: "call-1",
+		name: "gentle_review",
+		arguments: {
+			operation: "start",
+			input: { mode: "ordinary" },
+		},
+	});
+	assert.deepEqual(validatedReviewObj.input, { mode: "ordinary" });
+
+	const validatedReviewStr = validateToolArguments(controller as unknown as Parameters<typeof validateToolArguments>[0], {
+		type: "toolCall",
+		id: "call-2",
+		name: "gentle_review",
+		arguments: {
+			operation: "start",
+			input: JSON.stringify({ mode: "ordinary" }),
+		},
+	});
+	assert.equal(validatedReviewStr.input, JSON.stringify({ mode: "ordinary" }));
+
+	const validatedCaptureObj = validateToolArguments(capture as unknown as Parameters<typeof validateToolArguments>[0], {
+		type: "toolCall",
+		id: "call-3",
+		name: "gentle_review_capture",
+		arguments: {
+			lineageId: "lineage-1",
+			collectBinding: { lens: "readability", order: 1 },
+		},
+	});
+	assert.deepEqual(validatedCaptureObj.collectBinding, { lens: "readability", order: 1 });
+
+	const validatedCaptureGroupObj = validateToolArguments(captureGroup as unknown as Parameters<typeof validateToolArguments>[0], {
+		type: "toolCall",
+		id: "call-4",
+		name: "gentle_review_capture_group",
+		arguments: {
+			lineageId: "lineage-1",
+			collectBindings: [{ lens: "readability", order: 1 }],
+		},
+	});
+	assert.deepEqual(validatedCaptureGroupObj.collectBindings, [{ lens: "readability", order: 1 }]);
 });
