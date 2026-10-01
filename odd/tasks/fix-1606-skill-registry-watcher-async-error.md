@@ -10,10 +10,11 @@ In `extensions/skill-registry.ts`, `watch(dir, { recursive: true }, refresh)` re
 - [x] 1. Write failing regression test in `tests/skill-registry.test.ts` proving an unhandled watcher error event crashes without an error listener and is contained gracefully with an error listener (RED).
 - [x] 2. Update `extensions/skill-registry.ts` to attach an error listener to each `FSWatcher` that safely closes the watcher and drops it from `activeWatchers` (GREEN).
 - [x] 3. Run full skill registry test suite and typecheck verification.
-- [ ] 4. Commit work unit with Conventional Commit and publish architectural triage on Issue #1606.
+- [x] 4. Commit work unit with Conventional Commit (`55a3409e`) and prepare architectural triage on Issue #1606.
 
 ## Evidence
 - Reproduction confirmed RED: `Error: EMFILE: too many open files, watch` unhandled event in `tests/skill-registry.test.ts`.
 - Verified GREEN: 19/19 tests in `tests/skill-registry.test.ts` pass cleanly (including subtest 11 covering asynchronous watcher error containment, cleanup and activeWatcherCount decrement).
 - `npm run typecheck`: clean, 0 regressions.
 - `check:provider-contract` and `check:runtime-modules`: clean.
+- Commit `55a3409e` created and pushed to `origin/fix/1606-skill-registry-watcher-async-error`.
