@@ -12,7 +12,7 @@ PR #1624 bumped Pi devDependencies to `>=0.99.2` in `package.json` and committed
 - [x] 3. Update `tests/package-manifest.test.ts` devDependencies assertion to `>=0.99.2`.
 - [x] 4. Update `tests/vim-editor-adapter.test.ts` and `tests/gentle-shell.test.ts` to test against the installed Pi runtime version.
 - [x] 5. Full test verification, typecheck clean (0 regressions).
-- [ ] 6. Commit work unit with Conventional Commit and prepare triage comment for Issue #1625.
+- [x] 6. Commit work unit with Conventional Commit (`790d1523`) and prepare triage comment for Issue #1625.
 
 ## Evidence
 - `tests/package-manifest.test.ts`: 55/55 passed.
@@ -20,3 +20,4 @@ PR #1624 bumped Pi devDependencies to `>=0.99.2` in `package.json` and committed
 - `tests/gentle-shell.test.ts`: 243/243 passed.
 - `npm run typecheck`: clean (0 regressions).
 - `check:provider-contract` & `check:runtime-modules`: clean.
+- Commit `790d1523` created and pushed to `origin/fix/1625-vim-host-gate-pi-0.99.2`.
