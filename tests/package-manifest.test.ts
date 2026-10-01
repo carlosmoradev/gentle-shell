@@ -131,7 +131,7 @@ test("public docs and metadata advertise ODD and review without retired phase wo
 test("technical reference declares the tested Pi minimum required for agent_settled", () => {
 	const manifest = readPackageJson();
 	assert.equal(manifest.peerDependencies?.["@earendil-works/pi-coding-agent"], ">=0.99.1");
-	assert.equal(manifest.devDependencies?.["@earendil-works/pi-coding-agent"], "0.99.1");
+	assert.equal(manifest.devDependencies?.["@earendil-works/pi-coding-agent"], ">=0.99.2");
 	assert.equal(manifest.peerDependenciesMeta?.["@earendil-works/pi-coding-agent"]?.optional, true);
 	assert.equal(manifest.engines?.node, ">=22.19.0");
 	const reference = readFileSync(join(PACKAGE_ROOT, "docs", "readme-reference.md"), "utf8");
@@ -145,7 +145,7 @@ test("packed runtime uses optional Pi host peers with exact development pins and
 	for (const name of ["@earendil-works/pi-ai", "@earendil-works/pi-tui"]) {
 		assert.equal(manifest.peerDependencies?.[name], "*", name);
 		assert.equal(manifest.peerDependenciesMeta?.[name]?.optional, true, name);
-		assert.equal(manifest.devDependencies?.[name], "0.99.1", name);
+		assert.equal(manifest.devDependencies?.[name], ">=0.99.2", name);
 	}
 	for (const name of ["@earendil-works/pi-coding-agent", "@earendil-works/pi-ai", "@earendil-works/pi-tui"]) {
 		assert.equal(manifest.dependencies?.[name], undefined, name);

@@ -40,7 +40,7 @@ interface PrivateEditor {
   exitHistoryBrowsing(): void;
 }
 
-const SUPPORTED_VERSIONS = new Set(["0.99.1"]);
+export const SUPPORTED_VERSIONS = new Set(["0.99.1", "0.99.2"]);
 // Pi aliases only ES imports of host packages. This raw require walks
 // node_modules from the extension, which a git install lacks (#1586), so an
 // unresolved host leaves the version unknown and the identity gate closed.

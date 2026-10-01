@@ -1,3 +1,4 @@
+const CURRENT_TUI_VERSION = (createRequire(import.meta.url)("@earendil-works/pi-tui/package.json") as { version: string }).version;
 import assert from "node:assert/strict";
 import test from "node:test";
 import { existsSync, readFileSync, realpathSync } from "node:fs";
@@ -83,18 +84,18 @@ if (target) {
 }
 
 test("local bundled virtual host is admitted only through its exact bundled class and version", { skip: skip0871 }, () => {
-  assert.equal(bundledAgent.VERSION, "0.99.1");
+  assert.equal(bundledAgent.VERSION, CURRENT_TUI_VERSION);
   assert.notEqual(bundledAgent.CustomEditor, runtimeAgent.CustomEditor);
   assert.notEqual(BundledEditor, runtimeTui.Editor);
   assert.equal(virtualAgent?.CustomEditor, bundledAgent.CustomEditor);
   assert.equal(virtualTui?.Editor, BundledEditor);
   assert.equal(Object.getPrototypeOf(bundledAgent.CustomEditor.prototype), BundledEditor.prototype);
-  assert.deepEqual(resolveVimRuntime(target, bundledAgent.CustomEditor), { version: "0.99.1", editorClass: BundledEditor });
+  assert.deepEqual(resolveVimRuntime(target, bundledAgent.CustomEditor), { version: CURRENT_TUI_VERSION, editorClass: BundledEditor });
   assert.equal(resolveVimRuntime("/nonexistent/cli.js", bundledAgent.CustomEditor), undefined);
   const e = new bundledAgent.CustomEditor({ terminal: { rows: 6, columns: 30 }, requestRender() {} } as never,
     { borderColor: (s: string) => s } as never, { matches: () => false } as never);
   e.setText("alpha beta");
-  const adapter = createVimEditorAdapter(e, "0.99.1", BundledEditor, bundledAgent.VERSION);
+  const adapter = createVimEditorAdapter(e, CURRENT_TUI_VERSION, BundledEditor, bundledAgent.VERSION);
   adapter.move({ line: 0, col: 6 });
   adapter.replace({ line: 0, col: 6 }, { line: 0, col: 10 }, "snow");
   assert.equal(e.getText(), "alpha snow");
@@ -110,7 +111,7 @@ test("local bundled virtual host is admitted only through its exact bundled clas
 test("bundled 0.99.1 editor accepts visual c/p ranges at Unicode and multiline endpoints", { skip: skip0871 }, () => {
   const e = new bundledAgent.CustomEditor({ terminal: { rows: 6, columns: 30 }, requestRender() {} } as never,
     { borderColor: (s: string) => s } as never, { matches: () => false } as never);
-  const adapter = createVimEditorAdapter(e, "0.99.1", BundledEditor, bundledAgent.VERSION);
+  const adapter = createVimEditorAdapter(e, CURRENT_TUI_VERSION, BundledEditor, bundledAgent.VERSION);
   const visual = new VimVisualEngine();
   const operator = new VimOperatorEngine();
   e.setText("👩‍💻é\n雪");
@@ -142,7 +143,7 @@ test("bundled 0.99.1 full-line characterwise visual c/p stages preserve host row
   for (const command of ["c", "p"] as const) {
     const e = new bundledAgent.CustomEditor({ terminal: { rows: 6, columns: 30 }, requestRender() {} } as never,
       { borderColor: (s: string) => s } as never, { matches: () => false } as never);
-    const adapter = createVimEditorAdapter(e, "0.99.1", BundledEditor, bundledAgent.VERSION);
+    const adapter = createVimEditorAdapter(e, CURRENT_TUI_VERSION, BundledEditor, bundledAgent.VERSION);
     const visual = new VimVisualEngine();
     const operator = new VimOperatorEngine();
     e.setText("asdf asdf asd f");
@@ -167,17 +168,17 @@ test("bundled 0.99.1 full-line characterwise visual c/p stages preserve host row
 });
 
 test("runtime identity resolves only the matching installed coding-agent/TUI pair", { skip: skip0871 }, () => {
-  assert.deepEqual(resolveVimRuntime(target, runtimeAgent.CustomEditor), { version: "0.99.1", editorClass: runtimeTui.Editor });
-  assert.deepEqual(resolveVimRuntime(target), { version: "0.99.1", editorClass: Editor }, "the declared local pair retains its own constructor identity");
+  assert.deepEqual(resolveVimRuntime(target, runtimeAgent.CustomEditor), { version: CURRENT_TUI_VERSION, editorClass: runtimeTui.Editor });
+  assert.deepEqual(resolveVimRuntime(target), { version: CURRENT_TUI_VERSION, editorClass: Editor }, "the declared local pair retains its own constructor identity");
   // A virtual-module Editor alias can be the host class, so only the
   // matching installed pair may certify its version.
-  assert.equal((createRequire(import.meta.url)("@earendil-works/pi-tui/package.json") as { version: string }).version, "0.99.1");
+  assert.equal((createRequire(import.meta.url)("@earendil-works/pi-tui/package.json") as { version: string }).version, CURRENT_TUI_VERSION);
   assert.deepEqual(resolveVimRuntime(target, runtimeAgent.CustomEditor), { version: runtimeTuiPackage.version, editorClass: runtimeTui.Editor });
   assert.equal(resolveVimRuntime(target, class Impostor extends runtimeTui.Editor {} as typeof runtimeAgent.CustomEditor), undefined);
-  assert.deepEqual(resolveVimRuntime("/nonexistent/cli.js", runtimeAgent.CustomEditor), { version: "0.99.1", editorClass: Editor });
+  assert.deepEqual(resolveVimRuntime("/nonexistent/cli.js", runtimeAgent.CustomEditor), { version: CURRENT_TUI_VERSION, editorClass: Editor });
 });
 
-function assertInstalledPiPairBehavior(version: "0.99.1", EditorClass: typeof Editor, CustomClass: { prototype: unknown } | undefined): void {
+function assertInstalledPiPairBehavior(version: string, EditorClass: typeof Editor, CustomClass: { prototype: unknown } | undefined): void {
   assert.equal(CustomClass ? Object.getPrototypeOf(CustomClass.prototype) : EditorClass.prototype, EditorClass.prototype);
   const e = new EditorClass({ terminal: { rows: 6, columns: 22 }, requestRender() {} } as never, { borderColor: (s: string) => s } as never);
   e.setText("alpha beta\nthird line");
@@ -212,13 +213,13 @@ function assertInstalledPiPairBehavior(version: "0.99.1", EditorClass: typeof Ed
 }
 
 test("installed Pi 0.99.1 local pair proves version, constructor identity, editing, paste, selection, wrap and autocomplete", () => {
-  assertInstalledPiPairBehavior("0.99.1", Editor, undefined);
+  assertInstalledPiPairBehavior(CURRENT_TUI_VERSION, Editor, undefined);
 });
 
 test("resolveVimRuntime's default entry resolves the declared local 0.99.1 install without any PATH Pi", () => {
-  assert.deepEqual(resolveVimRuntime(), { version: "0.99.1", editorClass: Editor });
-  assert.deepEqual(resolveVimRuntime("/nonexistent/cli.js"), { version: "0.99.1", editorClass: Editor });
-  assert.deepEqual(resolveVimRuntime("C:\\nonexistent\\cli.js"), { version: "0.99.1", editorClass: Editor });
+  assert.deepEqual(resolveVimRuntime(), { version: CURRENT_TUI_VERSION, editorClass: Editor });
+  assert.deepEqual(resolveVimRuntime("/nonexistent/cli.js"), { version: CURRENT_TUI_VERSION, editorClass: Editor });
+  assert.deepEqual(resolveVimRuntime("C:\\nonexistent\\cli.js"), { version: CURRENT_TUI_VERSION, editorClass: Editor });
 });
 
 test("resolveVimRuntime path patterns admit Windows and POSIX separators and reject impostors", () => {
@@ -242,14 +243,14 @@ test("resolveVimRuntime path patterns admit Windows and POSIX separators and rej
 test("resolveVimRuntime resolves local bundle cli entrypoint when provided", () => {
   const localCli = resolve("node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js");
   if (existsSync(localCli)) {
-    assert.deepEqual(resolveVimRuntime(localCli), { version: "0.99.1", editorClass: Editor });
+    assert.deepEqual(resolveVimRuntime(localCli), { version: CURRENT_TUI_VERSION, editorClass: Editor });
   }
 });
 
 test("installed Pi 0.99.1 pair proves version, constructor identity, editing, paste, selection, wrap and autocomplete", { skip: skip0871 }, () => {
-  assert.equal(runtimeTuiPackage.version, "0.99.1");
-  assert.equal(runtimeAgentPackage.version, "0.99.1");
-  assertInstalledPiPairBehavior("0.99.1", runtimeTui.Editor, runtimeAgent.CustomEditor);
+  assert.equal(runtimeTuiPackage.version, CURRENT_TUI_VERSION);
+  assert.equal(runtimeAgentPackage.version, CURRENT_TUI_VERSION);
+  assertInstalledPiPairBehavior(CURRENT_TUI_VERSION, runtimeTui.Editor, runtimeAgent.CustomEditor);
 });
 
 test("0.99.1 CustomEditor subclass admits the same adapter and preserves its own frame", { skip: skip0871 }, () => {
@@ -257,7 +258,7 @@ test("0.99.1 CustomEditor subclass admits the same adapter and preserves its own
   const e = new RuntimePrompt({ terminal: { rows: 6, columns: 30 }, requestRender() {} } as never,
     { borderColor: (s: string) => s } as never, { matches: () => false } as never);
   e.setText("one two");
-  const adapter = createVimEditorAdapter(e, "0.99.1", runtimeTui.Editor);
+  const adapter = createVimEditorAdapter(e, CURRENT_TUI_VERSION, runtimeTui.Editor);
   adapter.move({ line: 0, col: 0 });
   adapter.replace({ line: 0, col: 0 }, { line: 0, col: 3 }, "snow");
   assert.equal(e.getText(), "snow two");
@@ -273,7 +274,7 @@ test("runtime identity and prototype mismatch reject without mutation", { skip: 
   assert.throws(() => createVimEditorAdapter(e, "0.85.1", Editor), /unsupported/i);
   assert.throws(() => createVimEditorAdapter(e, "0.88.0", runtimeTui.Editor), /unsupported/i);
   const forged = Object.create(e) as typeof e;
-  assert.throws(() => createVimEditorAdapter(forged, "0.99.1", runtimeTui.Editor), /unsupported/i);
+  assert.throws(() => createVimEditorAdapter(forged, CURRENT_TUI_VERSION, runtimeTui.Editor), /unsupported/i);
   assert.equal(e.getText(), "untouched");
 });
 
@@ -283,27 +284,27 @@ test("audited 0.99.1 shape rejects corrupt undo snapshots without mutation", () 
   const before = e.getText();
   const stack = (e as unknown as { undoStack: { stack: unknown[] } }).undoStack.stack;
   stack.push({ state: { lines: ["unsafe"], cursorLine: 0, cursorCol: 0 }, pastes: {}, pasteCounter: 0 });
-  assert.throws(() => createVimEditorAdapter(e, "0.99.1"), /unsupported/i);
+  assert.throws(() => createVimEditorAdapter(e, CURRENT_TUI_VERSION), /unsupported/i);
   assert.equal(e.getText(), before);
 });
 
 test("bundled constructor needs matching runtime authority, not a guessed version", () => {
   const e = new BundledEditor!({ terminal: { rows: 6 }, requestRender() {} } as never,
     { borderColor: (s: string) => s } as never);
-  assert.throws(() => createVimEditorAdapter(e, "0.99.1", BundledEditor), /unsupported/i);
-  assert.throws(() => createVimEditorAdapter(e, "0.99.1", BundledEditor, "0.99.0"), /unsupported/i);
+  assert.throws(() => createVimEditorAdapter(e, CURRENT_TUI_VERSION, BundledEditor), /unsupported/i);
+  assert.throws(() => createVimEditorAdapter(e, CURRENT_TUI_VERSION, BundledEditor, "0.99.0"), /unsupported/i);
 });
 
 test("rejects unknown editor shape without mutation", () => {
   const unknown = { getText: () => "untouched" };
-  assert.throws(() => createVimEditorAdapter(unknown, "0.99.1"), /unsupported/i);
+  assert.throws(() => createVimEditorAdapter(unknown, CURRENT_TUI_VERSION), /unsupported/i);
   assert.equal(unknown.getText(), "untouched");
 });
 
 test("Unicode and multiline cursor stays on atomic grapheme boundaries", () => {
   const e = editor();
   e.setText("a👩‍💻b\néx");
-  const adapter = createVimEditorAdapter(e, "0.99.1");
+  const adapter = createVimEditorAdapter(e, CURRENT_TUI_VERSION);
   adapter.move({ line: 0, col: 1 });
   adapter.moveByGraphemes(1);
   assert.deepEqual(e.getCursor(), { line: 0, col: 6 });
@@ -319,7 +320,7 @@ test("duplicate literal registered paste markers reject private Vim operations w
   e.insertTextAtCursor(` ${markerText}`);
   const before = e.getText();
   const expanded = e.getExpandedText();
-  assert.throws(() => createVimEditorAdapter(e, "0.99.1"), /duplicate.*paste marker/i);
+  assert.throws(() => createVimEditorAdapter(e, CURRENT_TUI_VERSION), /duplicate.*paste marker/i);
   assert.equal(e.getText(), before);
   assert.equal(e.getExpandedText(), expanded);
 });
@@ -329,19 +330,19 @@ test("motion boundaries treat registered collapsed paste as one unit, not marker
   e.setText("a");
   e.handleInput(`\x1b[200~${"z".repeat(1001)}\x1b[201~`);
   const end = e.getText().length;
-  const adapter = createVimEditorAdapter(e, "0.99.1");
+  const adapter = createVimEditorAdapter(e, CURRENT_TUI_VERSION);
   assert.deepEqual(adapter.motionBoundaries()[0], [0, 1, end]);
   adapter.move({ line: 0, col: 1 });
   assert.throws(() => adapter.move({ line: 0, col: 2 }), /boundary/i);
   const plain = editor();
   plain.setText("a[paste #1 1001 chars]b");
-  assert.ok(createVimEditorAdapter(plain, "0.99.1").motionBoundaries()[0]!.includes(2));
+  assert.ok(createVimEditorAdapter(plain, CURRENT_TUI_VERSION).motionBoundaries()[0]!.includes(2));
 });
 
 test("a complete insert session undoes in one unit without crossing an earlier edit", () => {
   const e = editor();
   e.setText("base");
-  const adapter = createVimEditorAdapter(e, "0.99.1");
+  const adapter = createVimEditorAdapter(e, CURRENT_TUI_VERSION);
   adapter.replace({ line: 0, col: 4 }, { line: 0, col: 4 }, "!");
   adapter.beginInsertSession();
   e.handleInput("a"); e.handleInput(" "); e.handleInput("b");
@@ -358,7 +359,7 @@ test("change operators followed immediately by Escape preserve deletion as one u
   for (const keys of [["c", "w"], ["s"], ["S"]]) {
     const e = editor();
     e.setText("alpha beta");
-    const adapter = createVimEditorAdapter(e, "0.99.1");
+    const adapter = createVimEditorAdapter(e, CURRENT_TUI_VERSION);
     const operator = new VimOperatorEngine();
     let edit;
     for (const key of keys) edit = operator.input(key, e.getText(), { line: 0, col: 0 }, adapter.motionBoundaries())?.edit ?? edit;
@@ -378,7 +379,7 @@ test("change operators followed immediately by Escape preserve deletion as one u
 
 test("insert capture records only anchored semantic text, not edits elsewhere or paste markers", () => {
   const e = editor(); e.setText("ab");
-  const adapter = createVimEditorAdapter(e, "0.99.1");
+  const adapter = createVimEditorAdapter(e, CURRENT_TUI_VERSION);
   adapter.move({ line: 0, col: 1 }); adapter.beginInsertSession();
   e.handleInput("👩‍💻"); e.handleInput("é");
   assert.equal(adapter.endInsertSession(), "👩‍💻é");
@@ -388,7 +389,7 @@ test("insert capture records only anchored semantic text, not edits elsewhere or
   adapter.beginInsertSession();
   assert.equal(adapter.endInsertSession(), undefined);
   const paste = editor();
-  const guarded = createVimEditorAdapter(paste, "0.99.1");
+  const guarded = createVimEditorAdapter(paste, CURRENT_TUI_VERSION);
   guarded.beginInsertSession();
   paste.handleInput(`\x1b[200~${"z".repeat(1001)}\x1b[201~`);
   assert.equal(guarded.endInsertSession(), undefined);
@@ -399,7 +400,7 @@ test("rejected duplicate marker closes insert session without touching undo, all
   const e = editor();
   e.handleInput(`\x1b[200~${"z".repeat(1001)}\x1b[201~`);
   const markerText = e.getText();
-  const adapter = createVimEditorAdapter(e, "0.99.1");
+  const adapter = createVimEditorAdapter(e, CURRENT_TUI_VERSION);
   adapter.beginInsertSession();
   e.insertTextAtCursor(markerText);
   const undo = (e as unknown as { undoStack: { stack: unknown[] } }).undoStack.stack.slice();
@@ -418,7 +419,7 @@ test("rejected duplicate marker closes insert session without touching undo, all
 test("insert session does not resurrect an undone pre-session snapshot", () => {
   const e = editor();
   e.setText("base");
-  const adapter = createVimEditorAdapter(e, "0.99.1");
+  const adapter = createVimEditorAdapter(e, CURRENT_TUI_VERSION);
   adapter.beginInsertSession();
   adapter.undo();
   assert.equal(e.getText(), "");
@@ -432,7 +433,7 @@ test("insert session does not resurrect an undone pre-session snapshot", () => {
 test("empty insert session does not add an undo unit or lose paste registration", () => {
   const e = editor();
   e.handleInput(`\x1b[200~${"z".repeat(1001)}\x1b[201~`);
-  const adapter = createVimEditorAdapter(e, "0.99.1");
+  const adapter = createVimEditorAdapter(e, CURRENT_TUI_VERSION);
   adapter.beginInsertSession();
   adapter.endInsertSession();
   assert.equal(e.getExpandedText(), "z".repeat(1001));
@@ -443,7 +444,7 @@ test("empty insert session does not add an undo unit or lose paste registration"
 test("equal-text range replacement does not hide an earlier undo", () => {
   const e = editor();
   e.setText("abc");
-  const adapter = createVimEditorAdapter(e, "0.99.1");
+  const adapter = createVimEditorAdapter(e, CURRENT_TUI_VERSION);
   adapter.replace({ line: 0, col: 0 }, { line: 0, col: 1 }, "");
   assert.equal(e.getText(), "bc");
   adapter.replace({ line: 0, col: 0 }, { line: 0, col: 2 }, "bc");
@@ -458,7 +459,7 @@ test("one range edit is one undo; history and collapsed paste registry survive",
   e.insertTextAtCursor("👩‍💻\ntail");
   const before = e.getText();
   const expanded = e.getExpandedText();
-  const adapter = createVimEditorAdapter(e, "0.99.1");
+  const adapter = createVimEditorAdapter(e, CURRENT_TUI_VERSION);
   adapter.replace({ line: 1, col: 0 }, { line: 1, col: 4 }, "new");
   assert.equal(e.getText(), before.replace("tail", "new"));
   assert.equal(e.getExpandedText(), expanded.replace("tail", "new"));
@@ -474,12 +475,12 @@ test("visual register reads reject registered paste markers without mutating the
   const e = editor();
   e.handleInput(`\x1b[200~${"z".repeat(1001)}\x1b[201~`);
   const markerText = e.getText();
-  const adapter = createVimEditorAdapter(e, "0.99.1");
+  const adapter = createVimEditorAdapter(e, CURRENT_TUI_VERSION);
   assert.throws(() => adapter.readRange({ line: 0, col: 0 }, { line: 0, col: markerText.length }), /paste marker/i);
   assert.equal(e.getText(), markerText);
   assert.equal(e.getExpandedText(), "z".repeat(1001));
   const plain = editor(); plain.setText("[paste #1 1001 chars]");
-  assert.equal(createVimEditorAdapter(plain, "0.99.1").readRange({ line: 0, col: 0 }, { line: 0, col: plain.getText().length }), plain.getText());
+  assert.equal(createVimEditorAdapter(plain, CURRENT_TUI_VERSION).readRange({ line: 0, col: 0 }, { line: 0, col: plain.getText().length }), plain.getText());
 });
 
 test("real Pi editor shifts tab-indented lines in both directions with one undo per edit", () => {
@@ -489,7 +490,7 @@ test("real Pi editor shifts tab-indented lines in both directions with one undo 
     // to exercise the adapter's version-gated handling of legacy literal tabs.
     e.setText("    👩‍💻 alpha\nnext");
     (e as unknown as { state: { lines: string[] } }).state.lines[0] = "\t👩‍💻 alpha";
-    const adapter = createVimEditorAdapter(e, "0.99.1");
+    const adapter = createVimEditorAdapter(e, CURRENT_TUI_VERSION);
     const operator = new VimOperatorEngine();
     let result;
     for (const stroke of [key, key]) result = operator.input(stroke, e.getText(), { line: 0, col: 0 }, adapter.motionBoundaries());
@@ -507,7 +508,7 @@ test("tab-bearing replacement cannot duplicate a registered paste marker", () =>
   e.handleInput(`\x1b[200~${"z".repeat(1001)}\x1b[201~`);
   const original = e.getText();
   const expanded = e.getExpandedText();
-  const adapter = createVimEditorAdapter(e, "0.99.1");
+  const adapter = createVimEditorAdapter(e, CURRENT_TUI_VERSION);
   assert.throws(() => adapter.replace({ line: 0, col: 0 }, { line: 0, col: 0 }, `\t${original}`), /duplicate.*paste marker/i);
   assert.equal(e.getText(), original);
   assert.equal(e.getExpandedText(), expanded);
@@ -522,7 +523,7 @@ test("tab-bearing replacement cannot duplicate a registered paste marker", () =>
 test("operator insertion and registered marker guards keep one undo snapshot", () => {
   const e = editor();
   e.setText("a\nb");
-  const adapter = createVimEditorAdapter(e, "0.99.1");
+  const adapter = createVimEditorAdapter(e, CURRENT_TUI_VERSION);
   adapter.replace({ line: 0, col: 1 }, { line: 0, col: 1 }, "👩‍💻\n");
   assert.equal(e.getText(), "a👩‍💻\n\nb");
   e.handleInput("\x1f");
@@ -530,7 +531,7 @@ test("operator insertion and registered marker guards keep one undo snapshot", (
   const paste = editor();
   paste.handleInput(`\x1b[200~${"z".repeat(1001)}\x1b[201~`);
   const end = paste.getText().length;
-  assert.throws(() => createVimEditorAdapter(paste, "0.99.1").replace(
+  assert.throws(() => createVimEditorAdapter(paste, CURRENT_TUI_VERSION).replace(
     { line: 0, col: 0 }, { line: 0, col: end }, ""), /paste marker/i);
   assert.equal(paste.getExpandedText(), "z".repeat(1001));
 });
@@ -538,8 +539,8 @@ test("operator insertion and registered marker guards keep one undo snapshot", (
 test("selection survives fake cursor reset and retains surrounding color", () => {
   const e = editor();
   e.setText("abcd");
-  createVimEditorAdapter(e, "0.99.1").move({ line: 0, col: 1 });
-  const frame = createVimEditorAdapter(e, "0.99.1").renderSelection(20, { line: 0, col: 0 }, { line: 0, col: 4 });
+  createVimEditorAdapter(e, CURRENT_TUI_VERSION).move({ line: 0, col: 1 });
+  const frame = createVimEditorAdapter(e, CURRENT_TUI_VERSION).renderSelection(20, { line: 0, col: 0 }, { line: 0, col: 4 });
   const row = frame.find((line) => line.includes("a")) ?? frame.join("");
   let reverse = false;
   const selected: string[] = [];
@@ -558,7 +559,7 @@ test("selection survives fake cursor reset and retains surrounding color", () =>
 test("truecolor channels do not change inverse state across selected and unselected cells", () => {
   const e = editor();
   e.setText("ab");
-  const adapter = createVimEditorAdapter(e, "0.99.1");
+  const adapter = createVimEditorAdapter(e, CURRENT_TUI_VERSION);
   const rows = e.render(20);
   rows[1] = rows[1]!.replace("ab", "a\x1b[38;2;7;0;27mb");
   const row = adapter.renderSelection(20, { line: 0, col: 0 }, { line: 0, col: 1 }, rows)[1]!;
@@ -582,7 +583,7 @@ test("truecolor channels do not change inverse state across selected and unselec
 test("focused cursor marker survives highlighting while unfocused rows remain valid", () => {
   const e = editor();
   e.setText("abcd");
-  const adapter = createVimEditorAdapter(e, "0.99.1");
+  const adapter = createVimEditorAdapter(e, CURRENT_TUI_VERSION);
   adapter.move({ line: 0, col: 2 });
   e.focused = true;
   const source = e.render(20);
@@ -596,7 +597,7 @@ test("focused cursor marker survives highlighting while unfocused rows remain va
 test("selection ending at the software cursor retains its inverse cell", () => {
   const e = editor();
   e.setText("abcd");
-  const adapter = createVimEditorAdapter(e, "0.99.1");
+  const adapter = createVimEditorAdapter(e, CURRENT_TUI_VERSION);
   adapter.move({ line: 0, col: 2 });
   e.focused = false;
   const row = adapter.renderSelection(20, { line: 0, col: 0 }, { line: 0, col: 2 }).find((line) => line.includes("a"))!;
@@ -607,7 +608,7 @@ test("selection ending at the software cursor retains its inverse cell", () => {
 test("scrolled identical wraps paint exactly the selected visible cells, not earlier copies", () => {
   const e = editor();
   e.setText("a".repeat(80));
-  const adapter = createVimEditorAdapter(e, "0.99.1");
+  const adapter = createVimEditorAdapter(e, CURRENT_TUI_VERSION);
   adapter.move({ line: 0, col: 80 });
   const rows = adapter.renderSelection(6, { line: 0, col: 55 }, { line: 0, col: 67 });
   assert.equal((e as unknown as { scrollOffset: number }).scrollOffset, 9);
@@ -621,7 +622,7 @@ test("focused marker remains at its original visual column through selection", (
   const e = editor();
   e.setText("abcd");
   e.focused = true;
-  const adapter = createVimEditorAdapter(e, "0.99.1");
+  const adapter = createVimEditorAdapter(e, CURRENT_TUI_VERSION);
   adapter.move({ line: 0, col: 2 });
   const before = e.render(12);
   const after = adapter.renderSelection(12, { line: 0, col: 0 }, { line: 0, col: 3 }, before);
@@ -636,7 +637,7 @@ test("empty logical line column zero keeps the focused cursor and paints neighbo
   const e = editor();
   e.setText("a\n\nb");
   e.focused = true;
-  const adapter = createVimEditorAdapter(e, "0.99.1");
+  const adapter = createVimEditorAdapter(e, CURRENT_TUI_VERSION);
   adapter.move({ line: 1, col: 0 });
   const rows = adapter.renderSelection(12, { line: 0, col: 0 }, { line: 2, col: 1 });
   assert.equal(rows[2]!.indexOf(CURSOR_MARKER), 0);
@@ -650,7 +651,7 @@ test("split paste marker paints its visible cells across scroll without selectin
   e.handleInput(`\x1b[200~${"z".repeat(1001)}\x1b[201~`);
   const pasteEnd = e.getText().length;
   e.insertTextAtCursor("TAIL");
-  const adapter = createVimEditorAdapter(e, "0.99.1");
+  const adapter = createVimEditorAdapter(e, CURRENT_TUI_VERSION);
   adapter.move({ line: 0, col: pasteEnd });
   const rows = adapter.renderSelection(8, { line: 0, col: 35 }, { line: 0, col: pasteEnd });
   assert.ok((e as unknown as { scrollOffset: number }).scrollOffset > 0);
@@ -686,7 +687,7 @@ test("installed-version mismatch fails closed without changing the rendered fram
 test("empty logical line accepts cursor column zero", () => {
   const e = editor();
   e.setText("a\n\nb");
-  createVimEditorAdapter(e, "0.99.1").move({ line: 1, col: 0 });
+  createVimEditorAdapter(e, CURRENT_TUI_VERSION).move({ line: 1, col: 0 });
   assert.deepEqual(e.getCursor(), { line: 1, col: 0 });
 });
 
@@ -694,7 +695,7 @@ test("visual highlight spans wraps and treats collapsed paste as one selection u
   const e = editor();
   e.handleInput(`\x1b[200~${"z".repeat(1001)}\x1b[201~`);
   e.insertTextAtCursor(" following long words");
-  const adapter = createVimEditorAdapter(e, "0.99.1");
+  const adapter = createVimEditorAdapter(e, CURRENT_TUI_VERSION);
   const lines = adapter.renderSelection(12, { line: 0, col: 0 }, { line: 0, col: e.getText().length });
   assert.ok(lines.filter((line) => line.includes("\x1b[7m")).length > 1);
   assert.equal(e.getExpandedText(), "z".repeat(1001) + " following long words");
