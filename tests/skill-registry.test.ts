@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { execSync } from "node:child_process";
+import { EventEmitter } from "node:events";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -162,6 +163,30 @@ test("skill registry watchers close on shutdown", async () => {
 		attempted,
 		"shutdown must clear watched cwd state so a later session can re-watch",
 	);
+	__testing.closeSkillRegistryWatchers();
+});
+
+test("skill registry watcher handles asynchronous error events gracefully without crashing (#1606)", async () => {
+	const root = join(tmpdir(), `gentle-pi-watcher-err-${Date.now()}`);
+	const skillPath = join(root, "skills", "docs", "SKILL.md");
+	mkdirSync(dirname(skillPath), { recursive: true });
+	writeFileSync(skillPath, "---\nname: docs\ndescription: Docs.\n---\n");
+
+	const fakeWatcher = new EventEmitter() as any;
+	let closed = false;
+	fakeWatcher.close = () => {
+		closed = true;
+	};
+
+	await __testing.startSkillRegistryWatcher(root, () => undefined, () => fakeWatcher);
+	assert.equal(__testing.activeWatcherCount(), 1);
+
+	// Emitting an asynchronous error (e.g. EMFILE from kernel) must be handled by the listener
+	fakeWatcher.emit("error", new Error("EMFILE: too many open files, watch"));
+
+	assert.equal(closed, true, "failed watcher must be closed");
+	assert.equal(__testing.activeWatcherCount(), 0, "failed watcher must be dropped from activeWatchers");
+
 	__testing.closeSkillRegistryWatchers();
 });
 

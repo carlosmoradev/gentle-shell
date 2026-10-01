@@ -493,6 +493,7 @@ function closeSkillRegistryWatchers(): void {
 async function startSkillRegistryWatcher(
 	cwd: string,
 	notify: (message: string) => void,
+	watchFn: any = watch,
 ): Promise<void> {
 	if (watchedCwds.has(cwd)) return;
 	watchedCwds.add(cwd);
@@ -518,7 +519,15 @@ async function startSkillRegistryWatcher(
 	};
 	for (const dir of dirs) {
 		try {
-			const watcher = watch(dir, { recursive: true }, refresh);
+			const watcher = watchFn(dir, { recursive: true }, refresh);
+			watcher.on("error", () => {
+				try {
+					watcher.close();
+				} catch {
+					// Best-effort cleanup; failed watchers must not block process exit.
+				}
+				activeWatchers.delete(watcher);
+			});
 			activeWatchers.add(watcher);
 		} catch {
 			// Some filesystems do not support recursive watches; session_start/manual refresh still work.
