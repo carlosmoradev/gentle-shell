@@ -493,3 +493,33 @@ test("REPAIR_LEGACY_ALIAS derives its immutable target from fresh native invento
 	const injected = await __testing.executeReviewControllerOperation({ operation: "repair-legacy-alias", input: JSON.stringify({ lineage: "legacy-alias", actor: "maintainer", reason: "repair alias", repository: "/injected" }) }, process.cwd(), native, undefined, undefined, interactiveContext(true));
 	assert.equal(injected.outcome, "native-input-invalid");
 });
+
+test("RECOVER_LOCK forwards the caller AbortSignal to native reclaim", async () => {
+	const calls: Array<Record<string, unknown>> = [];
+	const controller = new AbortController();
+	const native = {
+		reclaim: async (request: Record<string, unknown>) => {
+			calls.push(request);
+			return { record: { schema: "gentle-ai.review-reclaim-audit/v1" } };
+		},
+	} as unknown as import("../lib/native-review-cli.ts").NativeReviewCli;
+
+	const result = await __testing.executeReviewControllerOperation(
+		{
+			operation: "recover-lock",
+			input: JSON.stringify({
+				ownerHash: "a".repeat(64),
+				lineage: "stuck",
+				actor: "maintainer",
+				reason: "stale lock",
+			}),
+		},
+		process.cwd(),
+		native,
+		controller.signal,
+	);
+
+	assert.equal(result.mutation_outcome, "committed");
+	assert.equal(calls.length, 1);
+	assert.equal(calls[0]?.signal, controller.signal);
+});
