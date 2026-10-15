@@ -1766,7 +1766,7 @@ const MODEL_CONTROL_OPTIONS = [
 ] as const;
 const MODEL_PANEL_MAX_RENDER_ROWS = 20;
 // Rows the agent list does not own: two borders, title, current-profile line,
-// blank, "Current assignments:", blank, both scroll indicators, blank, Continue,
+// blank, global assignments header, blank, both scroll indicators, blank, Continue,
 // Back, blank, and the two footer rows.
 const AGENT_LIST_CHROME_ROWS = 15;
 const AGENT_LIST_MAX_VISIBLE_ROWS = MODEL_PANEL_MAX_RENDER_ROWS - AGENT_LIST_CHROME_ROWS;
@@ -3368,7 +3368,11 @@ class SddModelPanel implements OverlayComponent {
 		lines.push(line("Assign Models and Effort to Agents", "title"));
 		lines.push(line(`Current profile: ${this.profileLabel}`, "muted"));
 		lines.push("");
-		lines.push(line("Current assignments:", "muted"));
+		const isPinned = this.profileLabel.endsWith("(pinned)");
+		const assignmentsHeader = isPinned
+			? "Global assignments (subagents in this repo resolve pinned profile):"
+			: "Global assignments:";
+		lines.push(line(assignmentsHeader, "muted"));
 		lines.push("");
 		const visibleRows = Math.min(
 			this.visibleListRows(AGENT_LIST_MAX_VISIBLE_ROWS, AGENT_LIST_CHROME_ROWS),
@@ -3557,6 +3561,7 @@ function renderSddModelPanelForTesting(
 	theme?: Theme,
 	terminalRows?: number,
 	inputs: string[] = [],
+	profileLabel?: string,
 ): string[] {
 	const panel = new SddModelPanel(
 		initialConfig,
@@ -3564,7 +3569,7 @@ function renderSddModelPanelForTesting(
 		agents,
 		() => {},
 		theme,
-		undefined,
+		profileLabel,
 		terminalRows === undefined ? undefined : () => terminalRows,
 	);
 	for (const data of inputs) panel.handleInput(data);

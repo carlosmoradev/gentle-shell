@@ -1290,6 +1290,37 @@ test("model panel fills the terminal height like the profiles panel", () => {
 	for (const line of plain) assert.equal(line.length, 72);
 });
 
+test("model panel distinguishes global assignments from pinned profile routing (#2276)", () => {
+	const pinnedLines = __testing.renderSddModelPanel(
+		{},
+		["openai/gpt-5.5"],
+		["worker"],
+		80,
+		undefined,
+		40,
+		[],
+		"gemini-full (pinned)",
+	);
+	const pinnedPlain = pinnedLines.map(stripAnsi).join("\n");
+	assert.match(pinnedPlain, /Current profile: gemini-full \(pinned\)/);
+	assert.match(pinnedPlain, /Global assignments \(subagents in this repo resolve pinned profile\):/);
+
+	const unpinnedLines = __testing.renderSddModelPanel(
+		{},
+		["openai/gpt-5.5"],
+		["worker"],
+		80,
+		undefined,
+		40,
+		[],
+		"team",
+	);
+	const unpinnedPlain = unpinnedLines.map(stripAnsi).join("\n");
+	assert.match(unpinnedPlain, /Current profile: team/);
+	assert.match(unpinnedPlain, /Global assignments:/);
+	assert.doesNotMatch(unpinnedPlain, /resolve pinned profile/);
+});
+
 test("model panel lists grow with the terminal height instead of a fixed window", () => {
 	const agents = Array.from({ length: 40 }, (_, i) => `agent-${String(i).padStart(2, "0")}`);
 	const models = Array.from({ length: 60 }, (_, i) => `provider/model-${String(i).padStart(2, "0")}`);
